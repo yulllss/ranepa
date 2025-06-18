@@ -7,7 +7,6 @@ import pydeck as pdk
 df = pd.read_csv("airports.csv", sep='|', encoding='ISO-8859-1')
 df.info()
 
-
 st.set_page_config(page_title="main")
 
 
@@ -21,9 +20,7 @@ def haversine(coord1, coord2):
     return c * r
 
 
-
 st.title("Расстояние между аэропортами")
-
 
 iata_input = st.text_input("Введите IATA-код аэропорта:")
 
