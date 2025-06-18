@@ -4,8 +4,19 @@ from math import radians, cos, sin, asin, sqrt
 import pydeck as pdk
 
 
-df = pd.read_csv("airports.csv", sep='|', encoding='ISO-8859-1')
+df = pd.read_csv("airports.csv", sep='|', encoding='cp1251')
 df.info()
+df.head(25)
+
+friendly_countries = [
+    "Азербайджан", "Алжир", "Армения", "Афганистан", "Бахрейн", 
+    "Беларусь", "Венесуэла", "Вьетнам", "Гонконг", "Грузия", 
+    "Египет", "Израиль", "Индия", "Ирак", "Иран", "КНДР", 
+    "Казахстан", "Катар", "Китай", "Куба", "Кувейт", "Кыргызстан", 
+    "Маврикий", "Мальдивы", "Марокко", "Монголия", "Мьянма", "Оман", 
+    "ОАЭ","Сербия", "Сирия", "Таджикистан", "Таиланд", "Тунис", 
+    "Туркменистан", "Турция", "Узбекистан", "Шри-Ланка", "Эфиопия", "Индонезия", "Танзания", "Саудовская Аравия"
+]
 
 st.set_page_config(page_title="main")
 
@@ -33,56 +44,59 @@ if iata_input:
         origin_coords = (origin["latitude"], origin["longitude"])
 
  
-        distances = []
-        for _, row in df.iterrows():
-            if row["iata_code"] != iata_input.upper():
-                dest_coords = (row["latitude"], row["longitude"])
-                try:
+    distances = []
+    for _, row in df.iterrows():
+        if row["iata_code"] != iata_input.upper():
+            if row["country_rus"] not in friendly_countries:
+                continue 
+
+            try:
+                    dest_coords = (row["latitude"], row["longitude"])
                     distance = haversine(origin_coords, dest_coords)
-                except:
+                    distances.append({
+                        "iata_code": row["iata_code"],
+                        "name": row["name_eng"],
+                        "city": row["city_eng"],
+                        "country": row["country_rus"],
+                        "distance_km": round(distance, 2),
+                        "latitude": row["latitude"],
+                        "longitude": row["longitude"]
+                    })
+            except:
                     continue
-                distances.append({
-                    "iata_code": row["iata_code"],
-                    "name": row["name_eng"],
-                    "city": row["city_eng"],
-                    "country": row["country_rus"],
-                    "distance_km": round(distance, 2),
-                    "latitude": row["latitude"],
-                    "longitude": row["longitude"]
-                })
 
+    if not distances:
+            st.warning("Нет доступных рейсов в дружественные страны.")
+    else:
+            nearest_df = pd.DataFrame(sorted(distances, key=lambda x: x["distance_km"])[:5])
+            st.subheader("Ближайшие аэропорты (в пределах дружественных стран):")
+            st.dataframe(nearest_df)
     
-        nearest_df = pd.DataFrame(sorted(distances, key=lambda x: x["distance_km"])[:5])
-
-        st.subheader("Ближайшие аэропорты:")
-        st.dataframe(nearest_df)
-
-    
-        st.subheader("Карта:")
-        st.pydeck_chart(pdk.Deck(
-            initial_view_state=pdk.ViewState(
-                latitude=origin["latitude"],
-                longitude=origin["longitude"],
-                zoom=3,
-                pitch=0,
+    st.subheader("Карта:")
+    st.pydeck_chart(pdk.Deck(
+        initial_view_state=pdk.ViewState(
+            latitude=origin["latitude"],
+            longitude=origin["longitude"],
+            zoom=3,
+            pitch=0,
             ),
-            layers=[
-                pdk.Layer(
-                    "ScatterplotLayer",
-                    data=nearest_df,
-                    get_position='[longitude, latitude]',
-                    get_color='[255, 0, 0, 160]',
-                    get_radius=50000,
-                ),
-                pdk.Layer(
-                    "ScatterplotLayer",
-                    data=pd.DataFrame([{
-                        "latitude": origin["latitude"],
-                        "longitude": origin["longitude"]
-                    }]),
-                    get_position='[longitude, latitude]',
-                    get_color='[0, 0, 255, 160]',
-                    get_radius=70000,
-                )
-            ]
-        ))
+        layers=[
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=nearest_df,
+                get_position='[longitude, latitude]',
+                get_color='[255, 0, 0, 160]',
+                get_radius=50000,
+            ),
+            pdk.Layer(
+                "ScatterplotLayer",
+                data=pd.DataFrame([{
+                    "latitude": origin["latitude"],
+                    "longitude": origin["longitude"]
+                }]),
+                get_position='[longitude, latitude]',
+                get_color='[0, 0, 255, 160]',
+                get_radius=70000,
+            )
+        ]
+    ))
