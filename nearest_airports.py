@@ -27,7 +27,7 @@ def haversine(coord1, coord2):
     dlat = lat2 - lat1
     a = sin(dlat / 2)**2 + cos(lat1) * cos(lat2) * sin(dlon / 2)**2
     c = 2 * asin(sqrt(a))
-    r = 6371  # радиус Земли в км
+    r = 6371 
     return c * r
 
 
